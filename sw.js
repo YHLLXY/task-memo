@@ -1,5 +1,6 @@
-var CACHE_NAME = 'memo-v1';
-var ASSETS = ['/', '/index.html', '/manifest.json'];
+var BASE = self.location.pathname.replace(/\/[^/]*$/, '/');
+var CACHE_NAME = 'memo-v2';
+var ASSETS = [BASE, BASE + 'index.html', BASE + 'manifest.json'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
