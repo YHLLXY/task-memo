@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+  <title>我的备忘录</title>
+  <style>
+    /* ===== CSS 变量 ===== */
+    :root {
+      --bg: #f5f5f7;
+      --card-bg: #ffffff;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --border: #e5e5ea;
+      --accent: #007aff;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --high: #ff3b30;
+      --medium: #ff9500;
+      --low: #34c759;
+      --danger: #ff3b30;
+      --progress-bg: #e5e5ea;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a2e;
+        --card-bg: #16213e;
+        --text: #e4e4e7;
+        --text-secondary: #8e8e93;
+        --border: #2c2c3e;
+        --shadow: 0 1px 3px rgba(0,0,0,0.3);
+        --progress-bg: #2c2c3e;
+      }
+    }
+
+    body.light {
+      --bg: #f5f5f7; --card-bg: #ffffff; --text: #1d1d1f;
+      --text-secondary: #86868b; --border: #e5e5ea;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08); --progress-bg: #e5e5ea;
+    }
+
+    body.dark {
+      --bg: #1a1a2e; --card-bg: #16213e; --text: #e4e4e7;
+      --text-secondary: #8e8e93; --border: #2c2c3e;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3); --progress-bg: #2c2c3e;
+    }
+
+    /* ===== 基础 ===== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 500px;
+      margin: 0 auto;
+      min-height: 100vh;
+      min-height: 100dvh;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    /* ===== 顶栏 ===== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 16px 8px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+
+    .icon-btn {
+      width: 36px; height: 36px;
+      border: none; background: none;
+      font-size: 20px; cursor: pointer;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .icon-btn:active { background: var(--border); }
+
+    /* ===== 进度条 ===== */
+    .progress-wrap { padding: 0 16px 8px; }
+    .progress-bar {
+      height: 4px; border-radius: 2px;
+      background: var(--progress-bg);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 2px;
+      background: var(--accent);
+      transition: width 0.4s ease;
+    }
+    .stats {
+      padding: 0 16px 16px;
+      font-size: 13px; color: var(--text-secondary);
+    }
+    .stat-overdue { color: var(--danger); font-weight: 500; }
+
+    /* ===== 任务列表 ===== */
+    .task-list { padding: 0 16px; }
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-secondary); font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .task-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px 12px;
+      margin-bottom: 8px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .task-card:active { transform: scale(0.98); }
+
+    /* 紧急程度色条 */
+    .priority-bar {
+      width: 3px; min-height: 36px; border-radius: 2px;
+      flex-shrink: 0; align-self: stretch;
+    }
+    .priority-bar.high { background: var(--high); }
+    .priority-bar.medium { background: var(--medium); }
+    .priority-bar.low { background: var(--low); }
+
+    /* 任务主体 */
+    .task-body {
+      flex: 1; min-width: 0;
+      cursor: pointer;
+    }
+    .task-content {
+      font-size: 15px; line-height: 1.5;
+      word-break: break-word;
+    }
+    .task-deadline {
+      font-size: 12px; color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    .task-deadline.overdue {
+      color: var(--danger); font-weight: 600;
+    }
+
+    /* 子任务 */
+    .subtasks { margin-top: 6px; }
+    .subtask-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--text-secondary);
+      padding: 3px 0;
+    }
+    .subtask-item input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: var(--accent);
+    }
+    .subtask-add {
+      display: flex; gap: 6px; margin-top: 6px;
+    }
+    .subtask-add input {
+      flex: 1; padding: 6px 8px;
+      border: 1px solid var(--border); border-radius: 6px;
+      font-size: 13px; background: var(--bg); color: var(--text);
+      outline: none;
+    }
+    .subtask-add button {
+      padding: 6px 10px; border: none; border-radius: 6px;
+      background: var(--accent); color: white; font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* 操作区 */
+    .task-actions {
+      display: flex; flex-direction: column; gap: 2px;
+      flex-shrink: 0; align-items: center;
+    }
+    .arrow-btn {
+      background: none; border: none;
+      color: var(--text-secondary);
+      font-size: 10px; padding: 2px 6px;
+      cursor: pointer; border-radius: 4px;
+    }
+    .arrow-btn:active { background: var(--border); }
+    .arrow-btn:disabled { opacity: 0.25; pointer-events: none; }
+
+    /* 完成圆圈 */
+    .circle-btn {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px solid #c7c7cc;
+      background: none; cursor: pointer;
+      font-size: 13px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      color: transparent;
+    }
+    .circle-btn:active { transform: scale(0.9); }
+    .circle-btn.done {
+      background: var(--accent); border-color: var(--accent);
+      color: white;
+    }
+
+    /* 已完成区域 */
+    .done-section { padding: 0 16px; }
+    .done-header {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 14px; color: var(--text-secondary);
+      cursor: pointer; padding: 10px 0;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+    .done-card { opacity: 0.55; }
+    .done-card .task-content { text-decoration: line-through; }
+
+    /* ===== 底部输入区 ===== */
+    .input-area {
+      position: sticky; bottom: 0;
+      background: var(--bg);
+      padding: 12px 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      z-index: 10;
+    }
+
+    .priority-select { display: flex; gap: 6px; margin-bottom: 8px; }
+    .priority-btn {
+      flex: 1; padding: 8px 6px;
+      border: 2px solid var(--border);
+      border-radius: 8px; background: var(--card-bg);
+      color: var(--text); font-size: 12px;
+      cursor: pointer; text-align: center;
+      transition: border-color 0.2s;
+    }
+    .priority-btn.active { border-color: var(--accent); }
+
+    .deadline-row { margin-bottom: 8px; }
+    .deadline-row input {
+      width: 100%; padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px; background: var(--card-bg);
+      color: var(--text); font-size: 13px;
+      outline: none;
+    }
+
+    .input-row { display: flex; gap: 8px; }
+    .task-input {
+      flex: 1; padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px; font-size: 15px;
+      background: var(--card-bg); color: var(--text);
+      outline: none;
+    }
+    .task-input:focus { border-color: var(--accent); }
+    .add-btn {
+      padding: 12px 20px; background: var(--accent);
+      color: white; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 500;
+      cursor: pointer; white-space: nowrap;
+    }
+    .add-btn:active { opacity: 0.8; }
+
+    .clear-done {
+      text-align: center; padding: 12px;
+      font-size: 13px; color: var(--text-secondary);
+      cursor: pointer; margin-bottom: 80px;
+    }
+    .clear-done:active { color: var(--danger); }
+
+    /* ===== 弹窗 ===== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); z-index: 100;
+      justify-content: center; align-items: center;
+      padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--card-bg); border-radius: 16px;
+      padding: 28px 24px; width: 290px; text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+    }
+    .modal p { font-size: 16px; line-height: 1.5; }
+    .modal-buttons {
+      display: flex; gap: 12px; margin-top: 24px;
+      justify-content: center;
+    }
+    .modal-btn {
+      padding: 10px 28px; border-radius: 10px;
+      border: none; font-size: 15px; cursor: pointer;
+      font-weight: 500;
+    }
+    .modal-btn.cancel { background: var(--border); color: var(--text); }
+    .modal-btn.confirm { background: var(--accent); color: white; }
+    .modal-btn.cancel:active, .modal-btn.confirm:active { opacity: 0.7; }
+
+    /* ===== 长按菜单 ===== */
+    .context-menu {
+      display: none; position: fixed; z-index: 200;
+      background: var(--card-bg); border-radius: 14px;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.25);
+      padding: 6px; min-width: 150px;
+    }
+    .context-menu.show { display: block; }
+    .context-menu button {
+      display: block; width: 100%;
+      padding: 12px 16px; border: none;
+      background: none; color: var(--text);
+      font-size: 15px; text-align: left;
+      cursor: pointer; border-radius: 10px;
+    }
+    .context-menu button:active { background: var(--border); }
+    .context-menu button.danger { color: var(--danger); }
+
+    /* ===== 响应式 —— 大屏居中 ===== */
+    @media (min-width: 500px) {
+      body { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶栏 -->
+  <div class="header">
+    <button class="icon-btn" id="themeToggle" aria-label="切换主题">🌓</button>
+    <h1 style="font-size:18px;font-weight:600;">我的备忘录</h1>
+    <span id="dateLabel" style="font-size:12px;color:var(--text-secondary);"></span>
+  </div>
+
+  <!-- 进度条 -->
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+  <div class="stats" id="stats"></div>
+
+  <!-- 任务列表 -->
+  <div class="task-list" id="taskList"></div>
+
+  <!-- 已完成区域 -->
+  <div class="done-section" id="doneSection"></div>
+
+  <!-- 清除已完成 -->
+  <div class="clear-done" id="clearDone">清除已完成</div>
+
+  <!-- 底部输入区 -->
+  <div class="input-area">
+    <div class="priority-select" id="prioritySelect">
+      <button class="priority-btn active" data-p="medium">🟡 中等</button>
+      <button class="priority-btn" data-p="high">🔴 紧急</button>
+      <button class="priority-btn" data-p="low">🟢 不急</button>
+    </div>
+    <div class="deadline-row">
+      <input type="datetime-local" id="deadlineInput" placeholder="截止时间（可选）">
+    </div>
+    <div class="input-row">
+      <input class="task-input" id="taskInput" placeholder="要做些什么？" enterkeyhint="done">
+      <button class="add-btn" id="addBtn">添加</button>
+    </div>
+  </div>
+
+  <!-- 确认弹窗 -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+      <p id="modalMsg"></p>
+      <div class="modal-buttons">
+        <button class="modal-btn cancel" id="modalCancel">取消</button>
+        <button class="modal-btn confirm" id="modalConfirm">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 长按菜单 -->
+  <div class="context-menu" id="contextMenu"></div>
+
+  <script>
+  // ============================================================
+  //  常量 & 工具
+  // ============================================================
+  const STORAGE_KEY = 'memo_tasks';
+  const RETENTION_DAYS = 30;
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 8);
+  }
+
+  function today() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function formatDate(dateStr) {
+    var d = new Date(dateStr + 'T00:00:00');
+    var w = ['日','一','二','三','四','五','六'];
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 周' + w[d.getDay()];
+  }
+
+  function formatDeadline(iso) {
+    var d = new Date(iso);
+    var now = new Date();
+    var diffDays = Math.floor((d.getTime() - now.getTime()) / 86400000);
+    var time = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    if (diffDays === 0) return '今天 ' + time;
+    if (diffDays === 1) return '明天 ' + time;
+    if (diffDays === -1) return '昨天 ' + time;
+    if (diffDays < -1) return (d.getMonth()+1) + '/' + d.getDate() + ' ' + time + ' (已逾期)';
+    return (d.getMonth()+1) + '/' + d.getDate() + ' ' + time;
+  }
+
+  // ============================================================
+  //  localStorage 数据层
+  // ============================================================
+  function loadTasks() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+
+  function saveTasks(tasks) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }
+
+  function cleanOldTasks(tasks) {
+    var cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
+    var cutoffStr = cutoff.toISOString().split('T')[0];
+    var cleaned = tasks.filter(function (t) {
+      return !t.completed || t.date >= cutoffStr;
+    });
+    if (cleaned.length !== tasks.length) saveTasks(cleaned);
+    return cleaned;
+  }
+
+  function createTask(content, priority, deadline) {
+    var task = {
+      id: uid(),
+      content: content.trim(),
+      priority: priority || 'medium',
+      deadline: deadline || null,
+      pinned: false,
+      sub_tasks: [],
+      created_at: new Date().toISOString(),
+      date: today(),
+      completed: false,
+      completed_at: null,
+      order: Date.now()
+    };
+    var tasks = cleanOldTasks(loadTasks());
+    tasks.push(task);
+    saveTasks(tasks);
+    return task;
+  }
+
+  function completeTask(id) {
+    var tasks = loadTasks();
+    var t = tasks.find(function (t) { return t.id === id; });
+    if (t) { t.completed = true; t.completed_at = new Date().toISOString(); }
+    saveTasks(tasks);
+  }
+
+  function uncompleteTask(id) {
+    var tasks = loadTasks();
+    var t = tasks.find(function (t) { return t.id === id; });
+    if (t) { t.completed = false; t.completed_at = null; }
+    saveTasks(tasks);
+  }
+
+  function deleteTask(id) {
+    var tasks = loadTasks().filter(function (t) { return t.id !== id; });
+    saveTasks(tasks);
+  }
+
+  function clearDoneTasks() {
+    var tasks = loadTasks().filter(function (t) { return !t.completed; });
+    saveTasks(tasks);
+  }
+
+  function updateTaskContent(id, content) {
+    var tasks = loadTasks();
+    var t = tasks.find(function (t) { return t.id === id; });
+    if (t) t.content = content.trim();
+    saveTasks(tasks);
+  }
+
+  function togglePin(id) {
+    var tasks = loadTasks();
+    var t = tasks.find(function (t) { return t.id === id; });
+    if (t) t.pinned = !t.pinned;
+    saveTasks(tasks);
+  }
+
+  function moveTask(id, direction) {
+    var tasks = loadTasks();
+    var active = getTodayActiveTasks();
+    var idx = active.findIndex(function (t) { return t.id === id; });
+    if (idx < 0) return;
+    var swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= active.length) return;
+    var tmp = active[idx].order;
+    active[idx].order = active[swapIdx].order;
+    active[swapIdx].order = tmp;
+    saveTasks(tasks);
+  }
+
+  function addSubTask(taskId, content) {
+    var tasks = loadTasks();
+    var t = tasks.find(function (t) { return t.id === taskId; });
+    if (t) t.sub_tasks.push({ id: uid(), content: content.trim(), completed: false });
+    saveTasks(tasks);
+  }
+
+  function toggleSubTask(taskId, subId) {
+    var tasks = loadTasks();
+    var t = tasks.find(function (t) { return t.id === taskId; });
+    if (t) {
+      var s = t.sub_tasks.find(function (s) { return s.id === subId; });
+      if (s) s.completed = !s.completed;
+    }
+    saveTasks(tasks);
+  }
+
+  function deleteSubTask(taskId, subId) {
+    var tasks = loadTasks();
+    var t = tasks.find(function (t) { return t.id === taskId; });
+    if (t) t.sub_tasks = t.sub_tasks.filter(function (s) { return s.id !== subId; });
+    saveTasks(tasks);
+  }
+
+  function getTodayActiveTasks() {
+    var tasks = cleanOldTasks(loadTasks());
+    var active = tasks.filter(function (t) {
+      return !t.completed && t.date === today();
+    });
+    var now = new Date();
+    active.sort(function (a, b) {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      var aOver = a.deadline && new Date(a.deadline) < now;
+      var bOver = b.deadline && new Date(b.deadline) < now;
+      if (aOver !== bOver) return aOver ? -1 : 1;
+      var pri = { high: 0, medium: 1, low: 2 };
+      if (pri[a.priority] !== pri[b.priority]) return pri[a.priority] - pri[b.priority];
+      return a.order - b.order;
+    });
+    return active;
+  }
+
+  function getTodayDoneTasks() {
+    var tasks = loadTasks();
+    return tasks.filter(function (t) {
+      return t.completed && t.date === today();
+    }).sort(function (a, b) {
+      return new Date(b.completed_at || 0) - new Date(a.completed_at || 0);
+    });
+  }
+
+  // ============================================================
+  //  渲染
+  // ============================================================
+  var currentPriority = 'medium';
+  var doneCollapsed = false;
+  var contextTaskId = null;
+  var confirmCallback = null;
+
+  function render() {
+    renderStats();
+    renderActiveTasks();
+    renderDoneTasks();
+  }
+
+  function renderStats() {
+    var active = getTodayActiveTasks();
+    var done = getTodayDoneTasks();
+    var now = new Date();
+    var overdueCount = active.filter(function (t) {
+      return t.deadline && new Date(t.deadline) < now;
+    }).length;
+    var total = active.length + done.length;
+    var pct = total === 0 ? 0 : Math.round((done.length / total) * 100);
+
+    document.getElementById('progressFill').style.width = pct + '%';
+    var statsHtml = '待完成 ' + active.length + ' · ';
+    if (overdueCount > 0) {
+      statsHtml += '<span class="stat-overdue">逾期 ' + overdueCount + '</span> · ';
+    }
+    statsHtml += '已完成 ' + done.length;
+    document.getElementById('stats').innerHTML = statsHtml;
+    document.getElementById('dateLabel').textContent = formatDate(today());
+  }
+
+  function renderActiveTasks() {
+    var list = document.getElementById('taskList');
+    var active = getTodayActiveTasks();
+    if (active.length === 0 && getTodayDoneTasks().length === 0) {
+      list.innerHTML = '<div class="empty-state">✨ 今天没有待办<br><span style="font-size:13px;">添加一个任务开始吧</span></div>';
+      return;
+    }
+    if (active.length === 0) {
+      list.innerHTML = '<div class="empty-state">🎉 全部完成！</div>';
+      return;
+    }
+    list.innerHTML = active.map(function (t, i) {
+      return renderTaskCard(t, i, active.length);
+    }).join('');
+  }
+
+  function renderTaskCard(t, index, total) {
+    var now = new Date();
+    var isOverdue = t.deadline && new Date(t.deadline) < now;
+    var deadlineHtml = t.deadline
+      ? '<div class="task-deadline' + (isOverdue ? ' overdue' : '') + '">⏰ ' + formatDeadline(t.deadline) + '</div>'
+      : '';
+    var pinIcon = t.pinned ? '<span style="font-size:12px;">📌</span> ' : '';
+    var subtasksHtml = '';
+    if (t.sub_tasks.length > 0) {
+      subtasksHtml = '<div class="subtasks">' + t.sub_tasks.map(function (s) {
+        return '<div class="subtask-item">' +
+          '<input type="checkbox" ' + (s.completed ? 'checked' : '') + ' onchange="handleSubTaskToggle(\'' + t.id + '\',\'' + s.id + '\')">' +
+          '<span' + (s.completed ? ' style="text-decoration:line-through"' : '') + '>' + esc(s.content) + '</span>' +
+          '</div>';
+      }).join('') + '</div>';
+    }
+    // 子任务添加入口
+    subtasksHtml += '<div class="subtask-add">' +
+      '<input type="text" placeholder="+ 添加子步骤" id="subinp-' + t.id + '" onkeydown="handleSubTaskKey(event,\'' + t.id + '\')">' +
+      '<button onclick="handleAddSubTask(\'' + t.id + '\')">添加</button>' +
+      '</div>';
+
+    var upDisabled = index === 0 ? ' disabled' : '';
+    var downDisabled = index === total - 1 ? ' disabled' : '';
+
+    return '<div class="task-card" data-id="' + t.id + '" id="card-' + t.id + '">' +
+      '<div class="priority-bar ' + t.priority + '"></div>' +
+      '<div class="task-body">' +
+        '<div class="task-content" onclick="handleEditTask(\'' + t.id + '\')">' + pinIcon + esc(t.content) + '</div>' +
+        subtasksHtml +
+        deadlineHtml +
+      '</div>' +
+      '<div class="task-actions">' +
+        '<button class="arrow-btn" onclick="handleMove(\'' + t.id + '\',\'up\')"' + upDisabled + '>▲</button>' +
+        '<button class="arrow-btn" onclick="handleMove(\'' + t.id + '\',\'down\')"' + downDisabled + '>▼</button>' +
+      '</div>' +
+      '<button class="circle-btn" onclick="handleCompleteClick(\'' + t.id + '\')">○</button>' +
+      '</div>';
+  }
+
+  function renderDoneTasks() {
+    var section = document.getElementById('doneSection');
+    var done = getTodayDoneTasks();
+    var clearBtn = document.getElementById('clearDone');
+    if (done.length === 0) {
+      section.innerHTML = '';
+      clearBtn.style.display = 'none';
+      return;
+    }
+    clearBtn.style.display = 'block';
+    section.innerHTML =
+      '<div class="done-header" onclick="toggleDone()">' +
+        (doneCollapsed ? '▶' : '▼') + ' 已完成 (' + done.length + ')' +
+      '</div>' +
+      '<div id="doneList" style="display:' + (doneCollapsed ? 'none' : 'block') + '">' +
+        done.map(function (t) {
+          return '<div class="task-card done-card" data-id="' + t.id + '">' +
+            '<div class="priority-bar ' + t.priority + '"></div>' +
+            '<div class="task-body">' +
+              '<div class="task-content">' + esc(t.content) + '</div>' +
+            '</div>' +
+            '<button class="circle-btn done" onclick="handleUncomplete(\'' + t.id + '\')">✓</button>' +
+            '</div>';
+        }).join('') +
+      '</div>';
+  }
+
+  // ============================================================
+  //  事件处理
+  // ============================================================
+
+  // --- 添加任务 ---
+  function handleAddTask() {
+    var input = document.getElementById('taskInput');
+    var content = input.value.trim();
+    if (!content) return;
+    var deadline = document.getElementById('deadlineInput').value || null;
+    createTask(content, currentPriority, deadline);
+    input.value = '';
+    document.getElementById('deadlineInput').value = '';
+    render();
+    input.focus();
+  }
+
+  document.getElementById('addBtn').addEventListener('click', handleAddTask);
+  document.getElementById('taskInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') handleAddTask();
+  });
+
+  // --- 优先级 ---
+  document.getElementById('prioritySelect').addEventListener('click', function (e) {
+    var btn = e.target.closest('.priority-btn');
+    if (!btn) return;
+    currentPriority = btn.dataset.p;
+    document.querySelectorAll('.priority-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+  });
+
+  // --- 完成 ---
+  function handleCompleteClick(id) {
+    showConfirm('确认完成这个任务？', function () {
+      completeTask(id);
+      render();
+    });
+  }
+
+  function handleUncomplete(id) {
+    showConfirm('撤销完成，恢复为未完成？', function () {
+      uncompleteTask(id);
+      render();
+    });
+  }
+
+  // --- 弹窗 ---
+  function showConfirm(msg, onConfirm) {
+    document.getElementById('modalMsg').textContent = msg;
+    document.getElementById('confirmModal').classList.add('show');
+    confirmCallback = onConfirm;
+  }
+
+  document.getElementById('modalCancel').addEventListener('click', function () {
+    document.getElementById('confirmModal').classList.remove('show');
+    confirmCallback = null;
+  });
+  document.getElementById('modalConfirm').addEventListener('click', function () {
+    document.getElementById('confirmModal').classList.remove('show');
+    if (confirmCallback) confirmCallback();
+    confirmCallback = null;
+  });
+
+  // --- 排序箭头 ---
+  function handleMove(id, dir) {
+    moveTask(id, dir);
+    render();
+  }
+
+  // --- 内联编辑 ---
+  function handleEditTask(id) {
+    var tasks = loadTasks();
+    var t = tasks.find(function (t) { return t.id === id; });
+    if (!t) return;
+    var card = document.getElementById('card-' + id);
+    if (!card) return;
+    var body = card.querySelector('.task-body');
+    var oldHtml = body.innerHTML;
+    body.innerHTML = '<input class="task-input" id="edit-' + id + '" value="' + esc(t.content) + '" style="flex:1;font-size:15px;padding:8px;">';
+    var inp = document.getElementById('edit-' + id);
+    inp.focus();
+    inp.select();
+    function save() {
+      updateTaskContent(id, inp.value);
+      render();
+    }
+    inp.addEventListener('blur', save);
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { inp.blur(); }
+      if (e.key === 'Escape') { inp.value = t.content; inp.blur(); }
+    });
+  }
+
+  // --- 子任务 ---
+  function handleSubTaskToggle(taskId, subId) {
+    toggleSubTask(taskId, subId);
+    render();
+  }
+
+  function handleAddSubTask(taskId) {
+    var inp = document.getElementById('subinp-' + taskId);
+    if (!inp) return;
+    var content = inp.value.trim();
+    if (!content) return;
+    addSubTask(taskId, content);
+    inp.value = '';
+    render();
+  }
+
+  function handleSubTaskKey(e, taskId) {
+    if (e.key === 'Enter') handleAddSubTask(taskId);
+  }
+
+  // --- 长按菜单 ---
+  var longPressTimer = null;
+  var taskList = document.getElementById('taskList');
+
+  taskList.addEventListener('touchstart', function (e) {
+    var card = e.target.closest('.task-card');
+    if (!card) return;
+    var id = card.dataset.id;
+    longPressTimer = setTimeout(function () { showContextMenu(id, e); }, 600);
+  });
+  taskList.addEventListener('touchend', function () { clearTimeout(longPressTimer); });
+  taskList.addEventListener('touchmove', function () { clearTimeout(longPressTimer); });
+
+  // 桌面端右键菜单
+  taskList.addEventListener('contextmenu', function (e) {
+    var card = e.target.closest('.task-card');
+    if (!card) return;
+    e.preventDefault();
+    showContextMenu(card.dataset.id, e);
+  });
+
+  function showContextMenu(id, e) {
+    contextTaskId = id;
+    var tasks = loadTasks();
+    var t = tasks.find(function (t) { return t.id === id; });
+    if (!t) return;
+    var menu = document.getElementById('contextMenu');
+    menu.innerHTML =
+      '<button onclick="handleContextPin()">' + (t.pinned ? '📌 取消钉选' : '📌 钉选置顶') + '</button>' +
+      '<button class="danger" onclick="handleContextDelete()">🗑 删除任务</button>';
+    var x = e.touches ? e.touches[0].clientX : e.clientX;
+    var y = e.touches ? e.touches[0].clientY : e.clientY;
+    menu.style.left = Math.min(x, window.innerWidth - 170) + 'px';
+    menu.style.top = Math.min(y - 80, window.innerHeight - 120) + 'px';
+    menu.classList.add('show');
+  }
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.context-menu') && !e.target.closest('.task-card')) {
+      document.getElementById('contextMenu').classList.remove('show');
+    }
+  });
+
+  function handleContextPin() {
+    if (contextTaskId) { togglePin(contextTaskId); render(); }
+    document.getElementById('contextMenu').classList.remove('show');
+  }
+  function handleContextDelete() {
+    document.getElementById('contextMenu').classList.remove('show');
+    if (contextTaskId) {
+      showConfirm('确认删除这个任务？', function () {
+        deleteTask(contextTaskId);
+        render();
+      });
+    }
+  }
+
+  // --- 折叠已完成 ---
+  function toggleDone() {
+    doneCollapsed = !doneCollapsed;
+    render();
+  }
+
+  // --- 清除已完成 ---
+  document.getElementById('clearDone').addEventListener('click', function () {
+    var done = getTodayDoneTasks();
+    if (done.length === 0) return;
+    showConfirm('确认清除全部 ' + done.length + ' 个已完成任务？', function () {
+      clearDoneTasks();
+      render();
+    });
+  });
+
+  // --- 暗色模式 ---
+  function applyTheme(mode) {
+    document.body.classList.remove('light', 'dark');
+    if (mode === 'light') document.body.classList.add('light');
+    else if (mode === 'dark') document.body.classList.add('dark');
+    localStorage.setItem('memo_theme', mode);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.content = mode === 'dark' ? '#1a1a2e' : (mode === 'light' ? '#f5f5f7' :
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1a1a2e' : '#f5f5f7'));
+    }
+  }
+
+  document.getElementById('themeToggle').addEventListener('click', function () {
+    var current = localStorage.getItem('memo_theme') || 'auto';
+    var next = { auto: 'light', light: 'dark', dark: 'auto' };
+    applyTheme(next[current]);
+  });
+
+  // ============================================================
+  //  初始化
+  // ============================================================
+  (function init() {
+    var saved = localStorage.getItem('memo_theme') || 'auto';
+    if (saved !== 'auto') applyTheme(saved);
+    loadTasks(); // 触发 cleanOldTasks
+    render();
+  })();
+
+  // Service Worker 注册
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+  </script>
+</body>
+</html>
