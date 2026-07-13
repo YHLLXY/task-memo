@@ -57,7 +57,15 @@ npx serve .
 ## 文件结构
 
 ```
-├── index.html          # 主文件（全部结构+样式+逻辑）
+├── index.html          # 骨架（结构 + 模块引用）
+├── css/
+│   └── style.css       # 全部样式（CSS 变量 + 组件样式 + 动画）
+├── js/
+│   ├── app.js          # 入口：初始化 + PWA 注册
+│   ├── data.js         # 数据层：localStorage CRUD（零 DOM 依赖）
+│   ├── render.js       # 视图层：生成 HTML，更新 DOM
+│   ├── events.js       # 交互层：事件绑定 + 用户操作
+│   └── ui.js           # UI 工具：Modal、Theme、DatePicker
 ├── manifest.json       # PWA 配置
 ├── sw.js               # Service Worker（离线缓存）
 ├── icon-192.png        # App 图标
@@ -67,7 +75,10 @@ npx serve .
 └── docs/
     ├── 2026-07-13-task-memo-design.md   # 设计文档
     ├── 2026-07-13-task-memo-plan.md     # 实施计划
-    └── lessons-learned.md               # 开发经验总结（9条）
+    ├── lessons-learned.md               # 开发经验总结（9条）
+    └── superpowers/
+        └── specs/
+            └── 2026-07-13-layout-optimization-and-modularization-design.md
 ```
 
 ## 📚 文档
@@ -76,12 +87,14 @@ npx serve .
 |------|------|
 | [设计文档](docs/2026-07-13-task-memo-design.md) | 完整功能设计 + 数据模型 + UI 布局 |
 | [实施计划](docs/2026-07-13-task-memo-plan.md) | 分 Task 实施步骤 |
-| [经验教训](docs/lessons-learned.md) | 9 条开发经验 + 检查清单 |
+| [经验教训](docs/lessons-learned.md) | 13 条开发经验 + 检查清单 |
+| [v2.0 架构设计](docs/superpowers/specs/2026-07-13-layout-optimization-and-modularization-design.md) | 布局优化 + 模块化重构设计 |
 
 ## 📋 更新日志
 
 | 日期 | 版本 | 内容 |
 |------|------|------|
+| 2026-07-13 | v2.0 | **模块化重构** — 单文件拆分为 6 模块（data/render/events/ui/app）+ 三区固定布局 + 日期时间选择器修复 + 暗色模式过渡优化 + 折叠 grid 动画 |
 | 2026-07-13 | v1.3 | **UI 大改版** — Indigo 配色 + iOS 风格圆角 + 主题平滑过渡 + RAF 渲染防抖 |
 | 2026-07-13 | v1.2 | **SW 修复** — 网络优先策略 + 强制更新 + 版本更新提示；截止时间反馈优化 |
 | 2026-07-13 | v1.1 | **PWA 修复** — SW 路径适配 GitHub Pages + 手动安装按钮 |

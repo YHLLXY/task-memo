@@ -179,6 +179,119 @@ installBtn.addEventListener('click', () => {
 
 ---
 
+## 八、模块化拆分：命名空间 + IIFE = 零构建的模块系统
+
+### 问题
+
+单文件 1000+ 行，CSS/JS/HTML 混在一起，每次改一处都要在千行中定位。后续添加新功能需要理解全部代码，阻碍迭代。
+
+### 教训
+
+**#10：纯前端项目用命名空间 + IIFE 实现模块化，不依赖 ES modules 和打包工具。**
+
+```javascript
+// data.js — 零 DOM 依赖，纯数据层
+var TaskData = (function () {
+  'use strict';
+  function createTask(content, priority, deadline) { /* ... */ }
+  function getActiveTasks() { /* ... */ }
+  return {
+    create: createTask,
+    getActive: getActiveTasks,
+    // ... 公共接口
+  };
+})();
+```
+
+```html
+<!-- 按依赖顺序加载，app.js 最后 -->
+<script src="js/ui.js"></script>
+<script src="js/data.js"></script>
+<script src="js/render.js"></script>
+<script src="js/events.js"></script>
+<script src="js/app.js"></script>
+```
+
+模块间依赖关系：`app → events → render → data + ui`，单向无循环。
+
+**优点**：
+- 双击 `index.html` 即可运行，不需要 npm/server
+- 文件职责清晰：哪个模块出问题一目了然
+- 新功能接入只需触及对应模块 + 加一个接口函数
+
+---
+
+## 九、移动端输入区布局：flex 三区 + overflow-y 独立滚动
+
+### 问题
+
+原布局给 `.input-area` 使用 `position: sticky; bottom: 0`。当任务列表很短时，输入区跟着内容流动，无法固定在屏幕底部。`position: fixed` 在 iOS Safari 键盘弹出时有布局 bug。
+
+### 教训
+
+**#11：用 flex 布局代替 fixed/sticky 实现底部输入栏。**
+
+```css
+body {
+  display: flex; flex-direction: column;
+  height: 100dvh; overflow: hidden;
+}
+.scroll-area { flex: 1; overflow-y: auto; }  /* 任务列表独立滚动 */
+.input-area { flex-shrink: 0; }               /* 固定在底部 */
+```
+
+`100dvh` 动态适配 Safari 地址栏的收缩/展开，比 `100vh` 更可靠。不支持 `dvh` 的浏览器降级到 `vh`。
+
+---
+
+## 十、datetime-local 替代方案：双原生输入 + 自定义标签
+
+### 问题
+
+`<input type="datetime-local">` 在安卓 Chrome 上初始渲染数字错位，且 `placeholder` 无效。
+
+### 教训
+
+**#12：用 `type="date"` + `type="time"` 两个独立输入替代 `datetime-local`，自定义 label 展示选中值。**
+
+```html
+<input type="date" id="deadlineDate" style="opacity:0;position:absolute;">
+<input type="time" id="deadlineTime" style="opacity:0;position:absolute;">
+<label for="deadlineDate" class="deadline-label-btn">选择日期</label>
+<label for="deadlineTime" class="deadline-label-btn">选择时间</label>
+```
+
+- `<label for="...">` 自动关联原生输入，兼容所有浏览器
+- 隐藏原生控件，用 label 展示格式化的日期文字
+- 两个独立原生 picker，Android/iOS 都能正常弹出
+
+---
+
+## 十一、已完成列表折叠：grid-template-rows 动画
+
+### 问题
+
+`display: none/block` 切换无法被 CSS transition 动画化，折叠/展开是瞬间硬切换。
+
+### 教训
+
+**#13：用 `grid-template-rows: 1fr → 0fr` 做折叠高度动画，配合 `overflow: hidden`。**
+
+```css
+.done-list-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+  transition: grid-template-rows 0.3s ease;
+}
+.done-list-wrap.collapsed { grid-template-rows: 0fr; }
+.done-list-wrap > div { min-height: 0; }  /* 关键：防止内容溢出 */
+```
+
+比 `max-height` 方案更精确——不需要知道内容高度，`0fr → 1fr` 自适应。
+
+---
+
 ## 检查清单
 
 后续类似项目（纯前端 PWA）启动时：
@@ -191,6 +304,9 @@ installBtn.addEventListener('click', () => {
 □ 主题: CSS 变量 + body transition，不依赖 JS
 □ 渲染: RAF 防抖 render()
 □ PWA: beforeinstallprompt + 手动安装按钮
-□ 输入: datetime-local 自建反馈机制
+□ 输入: datetime-local → date + time + label 替代
 □ 部署: GitHub Pages Source 设为 Deploy from Branch
+□ 布局: flex 三区（header + scroll-area + input-area）
+□ 动画: grid-template-rows 折叠 > display:none
+□ 架构: 命名空间模块化（单文件 >500 行即拆分）
 ```
