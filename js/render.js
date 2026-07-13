@@ -35,6 +35,7 @@ var Render = (function () {
     var pct = total === 0 ? 0 : Math.round((done.length / total) * 100);
 
     document.getElementById('progressFill').style.width = pct + '%';
+    if (typeof Anim !== 'undefined') Anim.progressTo(pct);
     var statsHtml = '待完成 ' + active.length + ' · ';
     if (overdueCount > 0) {
       statsHtml += '<span class="stat-overdue">逾期 ' + overdueCount + '</span> · ';

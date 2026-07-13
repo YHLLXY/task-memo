@@ -12,6 +12,7 @@
   UI.Theme.init();
   TaskData.cleanOld();
   Render.all();
+  if (typeof Anim !== 'undefined') Anim.afterRender();
   Events.init();
   Notifier.init();
 

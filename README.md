@@ -61,12 +61,15 @@ npx serve .
 ├── css/
 │   └── style.css       # 全部样式（CSS 变量 + 组件样式 + 动画）
 ├── js/
+│   ├── lib/
+│   │   └── anime.umd.min.js  # anime.js v4.5 动画引擎
 │   ├── app.js          # 入口：初始化 + PWA 注册 + 通知启动
 │   ├── data.js         # 数据层：localStorage CRUD（零 DOM 依赖）
 │   ├── render.js       # 视图层：生成 HTML，更新 DOM
 │   ├── events.js       # 交互层：事件绑定 + 用户操作
 │   ├── ui.js           # UI 工具：Modal、Theme、DatePicker
-│   └── notify.js       # 通知模块：截止时间提醒（前台轮询）
+│   ├── notify.js       # 通知模块：截止时间提醒（前台轮询）
+│   └── animate.js      # 动画模块：封装 anime.js（5 种动效）
 ├── manifest.json       # PWA 配置
 ├── sw.js               # Service Worker（离线缓存）
 ├── icon-192.png        # App 图标
@@ -96,6 +99,7 @@ npx serve .
 
 | 日期 | 版本 | 内容 |
 |------|------|------|
+| 2026-07-14 | v2.2 | **动画系统** — 集成 anime.js，5 种动效：完成淡出、进度条弹性、弹窗弹簧、新任务滑入、Stagger 入场 |
 | 2026-07-13 | v2.1 | **通知提醒** — 截止时间前 5 分钟系统通知（前台轮询，80 行新模块） |
 | 2026-07-13 | v2.0 | **模块化重构** — 单文件拆分为 6 模块 + 三区固定布局 + 日期时间选择器修复 + 暗色模式过渡优化 + 折叠 grid 动画 |
 | 2026-07-13 | v1.3 | **UI 大改版** — Indigo 配色 + iOS 风格圆角 + 主题平滑过渡 + RAF 渲染防抖 |

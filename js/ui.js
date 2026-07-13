@@ -17,6 +17,7 @@ var UI = (function () {
     return new Promise(function (resolve) {
       document.getElementById('modalMsg').textContent = msg;
       document.getElementById('confirmModal').classList.add('show');
+      if (typeof Anim !== 'undefined') Anim.modalOpen();
 
       function onCancel() {
         cleanup();

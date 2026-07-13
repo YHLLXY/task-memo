@@ -24,10 +24,11 @@ var Events = (function () {
     var content = input.value.trim();
     if (!content) return;
     var deadline = UI.DatePicker.getValue();
-    TaskData.create(content, currentPriority, deadline);
+    var task = TaskData.create(content, currentPriority, deadline);
     input.value = '';
     UI.DatePicker.clear();
     Render.all();
+    if (task && typeof Anim !== 'undefined') Anim.cardEnter(task.id);
     input.focus();
   }
 
@@ -48,7 +49,11 @@ var Events = (function () {
     UI.Modal.confirm('确认完成这个任务？').then(function (confirmed) {
       if (confirmed) {
         TaskData.complete(id);
-        Render.all();
+        if (typeof Anim !== 'undefined') {
+          Anim.cardComplete(id, function () { Render.all(); });
+        } else {
+          Render.all();
+        }
       }
     });
   }
@@ -171,10 +176,15 @@ var Events = (function () {
   function handleContextDelete() {
     document.getElementById('contextMenu').classList.remove('show');
     if (contextTaskId) {
+      var deleteId = contextTaskId;
       UI.Modal.confirm('确认删除这个任务？').then(function (confirmed) {
         if (confirmed) {
-          TaskData.delete(contextTaskId);
-          Render.all();
+          TaskData.delete(deleteId);
+          if (typeof Anim !== 'undefined') {
+            Anim.cardComplete(deleteId, function () { Render.all(); });
+          } else {
+            Render.all();
+          }
         }
       });
     }
