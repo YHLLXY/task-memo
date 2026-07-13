@@ -999,9 +999,23 @@
     render();
   })();
 
-  // Service Worker 注册
+  // Service Worker 注册 + 更新检测
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(function () {});
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      // 检测到新版本 SW
+      reg.addEventListener('updatefound', function () {
+        var newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', function () {
+          if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+            // 新 SW 已激活，通知用户刷新
+            if (confirm('发现新版本，点击确定刷新页面')) {
+              window.location.reload();
+            }
+          }
+        });
+      });
+    }).catch(function () {});
   }
 
   // PWA 安装提示
