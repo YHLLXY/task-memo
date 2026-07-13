@@ -133,8 +133,14 @@ var TaskData = (function () {
 
   /** 调整排序 */
   function moveTask(id, direction) {
+    // 只加载一次数据，确保修改和保存的是同一份对象
     var tasks = loadTasks();
-    var active = getTodayActiveTasks();
+    var todayStr = today();
+    // 从加载的 tasks 中直接筛选活跃任务（避免二次 JSON.parse 导致对象不同）
+    var active = tasks.filter(function (t) {
+      return !t.completed && t.date === todayStr;
+    });
+    sortTasks(active);
     var idx = -1;
     for (var i = 0; i < active.length; i++) {
       if (active[i].id === id) { idx = i; break; }
