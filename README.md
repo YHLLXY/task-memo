@@ -63,5 +63,26 @@ npx serve .
 ├── icon-192.png        # App 图标
 ├── icon-512.png        # App 图标（大）
 ├── generate-icons.js   # 图标生成脚本
-└── README.md
+├── README.md
+└── docs/
+    ├── 2026-07-13-task-memo-design.md   # 设计文档
+    ├── 2026-07-13-task-memo-plan.md     # 实施计划
+    └── lessons-learned.md               # 开发经验总结（9条）
 ```
+
+## 📚 文档
+
+| 文档 | 说明 |
+|------|------|
+| [设计文档](docs/2026-07-13-task-memo-design.md) | 完整功能设计 + 数据模型 + UI 布局 |
+| [实施计划](docs/2026-07-13-task-memo-plan.md) | 分 Task 实施步骤 |
+| [经验教训](docs/lessons-learned.md) | 9 条开发经验 + 检查清单 |
+
+## 📋 更新日志
+
+| 日期 | 版本 | 内容 |
+|------|------|------|
+| 2026-07-13 | v1.3 | **UI 大改版** — Indigo 配色 + iOS 风格圆角 + 主题平滑过渡 + RAF 渲染防抖 |
+| 2026-07-13 | v1.2 | **SW 修复** — 网络优先策略 + 强制更新 + 版本更新提示；截止时间反馈优化 |
+| 2026-07-13 | v1.1 | **PWA 修复** — SW 路径适配 GitHub Pages + 手动安装按钮 |
+| 2026-07-13 | v1.0 | **初始版本** — 16 项功能，PWA 打包，移动端全屏 App |
