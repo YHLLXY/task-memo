@@ -292,6 +292,45 @@ body {
 
 ---
 
+## 十二、通知提醒：新模块即插即用，零侵入现有代码
+
+### 问题
+
+需要截止时间提醒功能，但担心增加后端依赖或影响现有模块的稳定性。
+
+### 教训
+
+**#14：新功能做成独立模块，一个接口函数接入 app.js，不触及现有 data/render/events。**
+
+```javascript
+// notify.js — 独立模块，零侵入
+var Notifier = (function () {
+  function check() {
+    var active = TaskData.getActive();  // 只读调用现有接口
+    // ... 过滤、通知
+  }
+  function init() {
+    if (!hasPermission()) { requestPermission().then(start); }
+    else { start(); }
+  }
+  return { init: init, check: check };
+})();
+
+// app.js — 只需一行接入
+Notifier.init();
+```
+
+### A→D 升级路径（前台轮询 → APK 原生闹钟）
+
+| 阶段 | 触发机制 | 覆盖场景 |
+|------|---------|---------|
+| Phase 1（当前） | `setInterval` 60s 轮询 | App 前台/后台标签页 |
+| Phase 2（打包 APK） | Android AlarmManager | App 完全关闭也能准时提醒 |
+
+升级时 `Notifier.check()` 逻辑原封不动复用——只换触发源，不换检查逻辑。在 `notify.js` 中已预留 `Notifier.getCheck()` 接口供原生端调用。
+
+---
+
 ## 检查清单
 
 后续类似项目（纯前端 PWA）启动时：
@@ -309,4 +348,5 @@ body {
 □ 布局: flex 三区（header + scroll-area + input-area）
 □ 动画: grid-template-rows 折叠 > display:none
 □ 架构: 命名空间模块化（单文件 >500 行即拆分）
+□ 新功能: 独立模块 + 一行接入 app.js（零侵入现有代码）
 ```

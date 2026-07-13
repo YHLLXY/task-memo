@@ -1,8 +1,8 @@
 /* ============================================================
-   我的备忘录 — 入口文件 (v2.0)
+   我的备忘录 — 入口文件 (v2.1)
 
-   职责：初始化顺序、PWA 注册
-   依赖：UI、TaskData、Render、Events
+   职责：初始化顺序、PWA 注册、通知系统
+   依赖：UI、TaskData、Render、Events、Notifier
    ============================================================ */
 
 (function () {
@@ -13,6 +13,7 @@
   TaskData.cleanOld();
   Render.all();
   Events.init();
+  Notifier.init();
 
   /* ── PWA: Service Worker 注册 + 更新检测 ── */
   if ('serviceWorker' in navigator) {

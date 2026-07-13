@@ -1,9 +1,10 @@
 var BASE = self.location.pathname.replace(/\/[^/]*$/, '/');
-var CACHE_NAME = 'memo-v4';
+var CACHE_NAME = 'memo-v5';
 var ASSETS = [
   BASE, BASE + 'index.html', BASE + 'manifest.json',
   BASE + 'css/style.css',
-  BASE + 'js/ui.js', BASE + 'js/data.js', BASE + 'js/render.js', BASE + 'js/events.js', BASE + 'js/app.js'
+  BASE + 'js/ui.js', BASE + 'js/data.js', BASE + 'js/render.js', BASE + 'js/events.js',
+  BASE + 'js/notify.js', BASE + 'js/app.js'
 ];
 
 // 立即激活新 SW，不等待旧 SW 释放
