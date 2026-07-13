@@ -245,12 +245,14 @@
 
     .deadline-row { margin-bottom: 8px; }
     .deadline-row input {
-      width: 100%; padding: 9px 10px;
+      padding: 9px 10px;
       border: 1px solid var(--border);
       border-radius: 8px; background: var(--card-bg);
       color: var(--text); font-size: 13px;
       outline: none;
     }
+    .deadline-row input:focus { border-color: var(--accent); }
+    .deadline-row input.has-value { border-color: var(--accent); background: rgba(0,122,255,0.05); }
 
     .input-row { display: flex; gap: 8px; }
     .task-input {
@@ -359,7 +361,12 @@
       <button class="priority-btn" data-p="low">🟢 不急</button>
     </div>
     <div class="deadline-row">
-      <input type="datetime-local" id="deadlineInput" placeholder="截止时间（可选）">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:13px;color:var(--text-secondary);white-space:nowrap;">⏰</span>
+        <input type="datetime-local" id="deadlineInput" style="flex:1;">
+        <span id="deadlineLabel" style="font-size:12px;color:var(--text-secondary);white-space:nowrap;display:none;"></span>
+        <button id="clearDeadline" style="display:none;background:none;border:none;color:var(--text-secondary);font-size:16px;cursor:pointer;padding:4px;" title="清除截止时间">✕</button>
+      </div>
     </div>
     <div class="input-row">
       <input class="task-input" id="taskInput" placeholder="要做些什么？" enterkeyhint="done">
@@ -697,6 +704,7 @@
     createTask(content, currentPriority, deadline);
     input.value = '';
     document.getElementById('deadlineInput').value = '';
+    updateDeadlineUI();
     render();
     input.focus();
   }
@@ -713,6 +721,33 @@
     currentPriority = btn.dataset.p;
     document.querySelectorAll('.priority-btn').forEach(function (b) { b.classList.remove('active'); });
     btn.classList.add('active');
+  });
+
+  // --- 截止时间 ---
+  var deadlineInput = document.getElementById('deadlineInput');
+  var deadlineLabel = document.getElementById('deadlineLabel');
+  var clearDeadlineBtn = document.getElementById('clearDeadline');
+
+  function updateDeadlineUI() {
+    if (deadlineInput.value) {
+      deadlineInput.classList.add('has-value');
+      deadlineLabel.textContent = formatDeadline(deadlineInput.value);
+      deadlineLabel.style.display = '';
+      clearDeadlineBtn.style.display = '';
+    } else {
+      deadlineInput.classList.remove('has-value');
+      deadlineLabel.style.display = 'none';
+      clearDeadlineBtn.style.display = 'none';
+    }
+  }
+
+  deadlineInput.addEventListener('change', function () {
+    updateDeadlineUI();
+  });
+
+  clearDeadlineBtn.addEventListener('click', function () {
+    deadlineInput.value = '';
+    updateDeadlineUI();
   });
 
   // --- 完成 ---
