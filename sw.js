@@ -1,5 +1,5 @@
 var BASE = self.location.pathname.replace(/\/[^/]*$/, '/');
-var CACHE_NAME = 'memo-v7';
+var CACHE_NAME = 'memo-v8';
 var ASSETS = [
   BASE, BASE + 'index.html', BASE + 'manifest.json',
   BASE + 'css/style.css',
