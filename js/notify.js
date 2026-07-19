@@ -48,7 +48,8 @@ var Notifier = (function () {
       return;
     }
 
-    var active = TaskData.getActive();
+    // 始终检查今天的任务（与当前查看日期无关）
+    var active = TaskData.getActive(TaskData.today());
     var now = new Date();
     var upcoming = [];
 

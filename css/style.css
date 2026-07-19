@@ -157,6 +157,50 @@ body.theme-switching .stats {
 }
 .stat-overdue { color: var(--danger); font-weight: 500; }
 
+/* ===== 日期导航 ===== */
+.date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 4px 16px 8px;
+  flex-shrink: 0;
+}
+.date-nav-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s ease;
+}
+.date-nav-btn:active { background: var(--accent-light); border-color: var(--accent); }
+.date-nav-btn:disabled { opacity: 0.3; pointer-events: none; }
+.date-nav-label {
+  font-size: 14px; font-weight: 500;
+  color: var(--text);
+  min-width: 120px; text-align: center;
+  transition: color 0.2s ease;
+}
+.date-today-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.date-today-btn:active { opacity: 0.7; }
+
+/* 输入区隐藏 */
+.input-area.hidden { display: none; }
+
 /* ===== 滚动区域 ===== */
 .scroll-area {
   flex: 1;

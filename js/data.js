@@ -10,6 +10,7 @@ var TaskData = (function () {
 
   var STORAGE_KEY = 'memo_tasks';
   var RETENTION_DAYS = 30;
+  var currentDate = null; // null 表示"今天"
 
   /* ── 工具 ── */
   function uid() {
@@ -18,6 +19,19 @@ var TaskData = (function () {
 
   function today() {
     return new Date().toISOString().split('T')[0];
+  }
+
+  /** 当前查看的日期（null 自动解析为今天） */
+  function getCurrentDate() {
+    return currentDate || today();
+  }
+
+  function setCurrentDate(date) {
+    currentDate = (date === today()) ? null : date;
+  }
+
+  function isTodayView() {
+    return currentDate === null;
   }
 
   /* ── 基础读写 ── */
@@ -46,7 +60,31 @@ var TaskData = (function () {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     } catch (e) {
-      // localStorage 满了，静默失败
+      console.error('[备忘录] localStorage 写入失败:', e.message || e);
+      // 尝试清理旧数据后重试一次
+      try {
+        var cleaned = tasks.filter(function (t) {
+          return !t.completed || t.date >= (function () {
+            var cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
+            return cutoff.toISOString().split('T')[0];
+          })();
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+        console.warn('[备忘录] 清理后重试保存成功，移除了 ' + (tasks.length - cleaned.length) + ' 条旧数据');
+      } catch (e2) {
+        console.error('[备忘录] 重试保存仍失败:', e2.message || e2);
+      }
+    }
+  }
+
+  /** 防御性保存：页面隐藏/退出时调用，确保数据不丢失 */
+  function forceSave() {
+    try {
+      var tasks = loadTasks();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    } catch (e) {
+      console.error('[备忘录] 防御性保存失败:', e.message || e);
     }
   }
 
@@ -131,6 +169,14 @@ var TaskData = (function () {
     saveRaw(tasks);
   }
 
+  /** 修改优先级 */
+  function updatePriority(id, priority) {
+    var tasks = loadTasks();
+    var t = findById(tasks, id);
+    if (t) t.priority = priority;
+    saveRaw(tasks);
+  }
+
   /** 调整排序 */
   function moveTask(id, direction) {
     // 只加载一次数据，确保修改和保存的是同一份对象
@@ -191,24 +237,44 @@ var TaskData = (function () {
 
   /* ── 查询 ── */
 
-  /** 获取今天的活跃任务（排序后） */
-  function getActiveTasks() {
+  /** 获取指定日期的活跃任务（排序后），默认当前查看日期 */
+  function getActiveTasks(optDate) {
+    var date = optDate || getCurrentDate();
     var tasks = cleanOldTasks(loadTasks());
     var active = tasks.filter(function (t) {
-      return !t.completed && t.date === today();
+      return !t.completed && t.date === date;
     });
     sortTasks(active);
     return active;
   }
 
-  /** 获取今天的已完成任务 */
-  function getDoneTasks() {
+  /** 获取指定日期的已完成任务，默认当前查看日期 */
+  function getDoneTasks(optDate) {
+    var date = optDate || getCurrentDate();
     var tasks = loadTasks();
     return tasks.filter(function (t) {
-      return t.completed && t.date === today();
+      return t.completed && t.date === date;
     }).sort(function (a, b) {
       return new Date(b.completed_at || 0) - new Date(a.completed_at || 0);
     });
+  }
+
+  /** 获取所有有任务的日期列表（倒序，最近 30 天） */
+  function getAvailableDates() {
+    var tasks = loadTasks();
+    var dates = {};
+    var cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
+    var cutoffStr = cutoff.toISOString().split('T')[0];
+    for (var i = 0; i < tasks.length; i++) {
+      if (tasks[i].date >= cutoffStr) {
+        dates[tasks[i].date] = true;
+      }
+    }
+    // 确保今天始终在列表中
+    dates[today()] = true;
+    var result = Object.keys(dates).sort().reverse();
+    return result;
   }
 
   /** 获取全部已加载任务（用于遍历） */
@@ -248,12 +314,18 @@ var TaskData = (function () {
     clearDone: clearDoneTasks,
     updateContent: updateTaskContent,
     togglePin: togglePin,
+    updatePriority: updatePriority,
     move: moveTask,
     subTask: subTask,
     getActive: getActiveTasks,
     getDone: getDoneTasks,
     getAll: getAllTasks,
+    getAvailableDates: getAvailableDates,
+    getCurrentDate: getCurrentDate,
+    setCurrentDate: setCurrentDate,
+    isTodayView: isTodayView,
     cleanOld: function () { return cleanOldTasks(loadTasks()); },
+    forceSave: forceSave,
     today: today,
     uid: uid
   };

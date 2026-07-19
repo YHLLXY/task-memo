@@ -9,6 +9,23 @@
   'use strict';
 
   /* ── 初始化 ── */
+
+  // 数据完整性校验：确保 localStorage 可读可写
+  (function checkDataIntegrity() {
+    try {
+      var testKey = '__memo_integrity_check__';
+      localStorage.setItem(testKey, '1');
+      localStorage.removeItem(testKey);
+      var tasks = TaskData.load();
+      var taskCount = tasks.length;
+      if (taskCount > 0) {
+        var todayTasks = tasks.filter(function (t) { return t.date === TaskData.today(); });
+      }
+    } catch (e) {
+      console.error('[备忘录] 存储不可用，数据可能无法保存:', e.message || e);
+    }
+  })();
+
   UI.Theme.init();
   TaskData.cleanOld();
   Render.all();

@@ -28,6 +28,14 @@
   </div>
   <div class="stats" id="stats"></div>
 
+  <!-- ===== 日期导航 ===== -->
+  <div class="date-nav" id="dateNav">
+    <button class="date-nav-btn" id="datePrev" aria-label="前一天">←</button>
+    <span class="date-nav-label" id="dateNavLabel">今天</span>
+    <button class="date-nav-btn" id="dateNext" aria-label="后一天" disabled>→</button>
+    <button class="date-today-btn" id="dateTodayBtn" style="display:none;">回到今天</button>
+  </div>
+
   <!-- ===== 滚动区域 ===== -->
   <div class="scroll-area">
 
@@ -43,11 +51,11 @@
   </div>
 
   <!-- ===== 底部输入区 ===== -->
-  <div class="input-area">
+  <div class="input-area" id="inputArea">
     <div class="priority-select" id="prioritySelect">
+      <button class="priority-btn" data-p="low">🟢 不急</button>
       <button class="priority-btn active" data-p="medium">🟡 中等</button>
       <button class="priority-btn" data-p="high">🔴 紧急</button>
-      <button class="priority-btn" data-p="low">🟢 不急</button>
     </div>
 
     <!-- 日期时间选择器 -->

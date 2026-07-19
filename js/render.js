@@ -24,6 +24,7 @@ var Render = (function () {
   /* ── 统计信息 + 进度条 ── */
 
   function renderStats() {
+    var curDate = TaskData.getCurrentDate();
     var active = TaskData.getActive();
     var done = TaskData.getDone();
     var now = new Date();
@@ -42,19 +43,55 @@ var Render = (function () {
     }
     statsHtml += '已完成 ' + done.length;
     document.getElementById('stats').innerHTML = statsHtml;
-    document.getElementById('dateLabel').textContent = UI.formatDate(TaskData.today());
+    document.getElementById('dateLabel').textContent = UI.formatDate(curDate);
+  }
+
+  /* ── 日期导航条 ── */
+
+  function renderDateNav() {
+    var curDate = TaskData.getCurrentDate();
+    var isToday = TaskData.isTodayView();
+
+    // 日期标签
+    var labelEl = document.getElementById('dateNavLabel');
+    if (isToday) {
+      labelEl.textContent = '今天 · ' + UI.formatDate(curDate);
+    } else {
+      labelEl.textContent = UI.formatDate(curDate);
+    }
+
+    // ← 按钮：最旧日期或 30 天前不可用
+    var prevBtn = document.getElementById('datePrev');
+    var cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    var cutoffStr = cutoff.toISOString().split('T')[0];
+    prevBtn.disabled = (curDate <= cutoffStr);
+
+    // → 按钮：今天是最后一天
+    var nextBtn = document.getElementById('dateNext');
+    nextBtn.disabled = isToday;
+
+    // "回到今天" 按钮
+    var todayBtn = document.getElementById('dateTodayBtn');
+    todayBtn.style.display = isToday ? 'none' : 'inline-block';
   }
 
   /* ── 活跃任务列表 ── */
 
   function renderActiveTasks() {
     var list = document.getElementById('taskList');
+    var curDate = TaskData.getCurrentDate();
+    var isToday = TaskData.isTodayView();
     var active = TaskData.getActive();
     var doneCount = TaskData.getDone().length;
     var totalCount = active.length + doneCount;
 
     if (active.length === 0 && totalCount === 0) {
-      list.innerHTML = '<div class="empty-state">✨ 今天没有待办<br><span style="font-size:13px;">添加一个任务开始吧</span></div>';
+      if (isToday) {
+        list.innerHTML = '<div class="empty-state">✨ 今天没有待办<br><span style="font-size:13px;">添加一个任务开始吧</span></div>';
+      } else {
+        list.innerHTML = '<div class="empty-state">📭 ' + UI.formatDate(curDate) + ' 没有任务记录</div>';
+      }
       return;
     }
     if (active.length === 0) {
@@ -156,14 +193,24 @@ var Render = (function () {
   function renderAll() {
     scheduleRender(function () {
       renderStats();
+      renderDateNav();
       renderActiveTasks();
       renderDoneTasks();
+
+      // 非今天视图隐藏输入区
+      var inputArea = document.getElementById('inputArea');
+      if (TaskData.isTodayView()) {
+        inputArea.classList.remove('hidden');
+      } else {
+        inputArea.classList.add('hidden');
+      }
     });
   }
 
   /* ── 公共接口 ── */
   return {
     stats: renderStats,
+    dateNav: renderDateNav,
     activeList: renderActiveTasks,
     doneList: renderDoneTasks,
     all: renderAll,

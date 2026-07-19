@@ -157,9 +157,24 @@ var Events = (function () {
       if (tasks[i].id === id) { t = tasks[i]; break; }
     }
     if (!t) return;
+
+    // 优先级选项（只显示与当前不同的）
+    var allPris = [
+      { key: 'high', label: '🔴 设为紧急' },
+      { key: 'medium', label: '🟡 设为中等' },
+      { key: 'low', label: '🟢 设为不急' }
+    ];
+    var priHtml = '';
+    for (var p = 0; p < allPris.length; p++) {
+      if (allPris[p].key !== t.priority) {
+        priHtml += '<button onclick="Events.handleContextPriorityChange(\'' + allPris[p].key + '\')">' + allPris[p].label + '</button>';
+      }
+    }
+
     var menu = document.getElementById('contextMenu');
     menu.innerHTML =
       '<button onclick="Events.handleContextPin()">' + (t.pinned ? '📌 取消钉选' : '📌 钉选置顶') + '</button>' +
+      priHtml +
       '<button class="danger" onclick="Events.handleContextDelete()">🗑 删除任务</button>';
     var x = e.touches ? e.touches[0].clientX : e.clientX;
     var y = e.touches ? e.touches[0].clientY : e.clientY;
@@ -190,6 +205,14 @@ var Events = (function () {
     }
   }
 
+  function handleContextPriorityChange(newPriority) {
+    if (contextTaskId) {
+      TaskData.updatePriority(contextTaskId, newPriority);
+      Render.all();
+    }
+    document.getElementById('contextMenu').classList.remove('show');
+  }
+
   function closeContextMenu(e) {
     if (!e.target.closest('.context-menu') && !e.target.closest('.task-card')) {
       document.getElementById('contextMenu').classList.remove('show');
@@ -216,6 +239,53 @@ var Events = (function () {
     });
   }
 
+  /* ── 日期导航 ── */
+
+  function handleDatePrev() {
+    var curDate = TaskData.getCurrentDate();
+    var d = new Date(curDate + 'T00:00:00');
+    d.setDate(d.getDate() - 1);
+    var newDate = d.toISOString().split('T')[0];
+    TaskData.setCurrentDate(newDate);
+    Render.all();
+  }
+
+  function handleDateNext() {
+    if (TaskData.isTodayView()) return;
+    var curDate = TaskData.getCurrentDate();
+    var d = new Date(curDate + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    var newDate = d.toISOString().split('T')[0];
+    TaskData.setCurrentDate(newDate);
+    Render.all();
+  }
+
+  function handleDateToday() {
+    TaskData.setCurrentDate(TaskData.today());
+    Render.all();
+  }
+
+  /* ── 防御性保存：页面隐藏/退出时强制写入 localStorage ── */
+
+  function initDefensiveSave() {
+    // visibilitychange：页面切到后台时触发（大部分浏览器）
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        TaskData.forceSave();
+      }
+    });
+
+    // pagehide：iOS Safari 更可靠的页面退出事件
+    window.addEventListener('pagehide', function () {
+      TaskData.forceSave();
+    });
+
+    // beforeunload：桌面端关闭标签页
+    window.addEventListener('beforeunload', function () {
+      TaskData.forceSave();
+    });
+  }
+
   /* ── 初始化所有事件 ── */
 
   function init() {
@@ -230,6 +300,14 @@ var Events = (function () {
 
     // 日期选择器
     UI.DatePicker.init();
+
+    // 日期导航
+    document.getElementById('datePrev').addEventListener('click', handleDatePrev);
+    document.getElementById('dateNext').addEventListener('click', handleDateNext);
+    document.getElementById('dateTodayBtn').addEventListener('click', handleDateToday);
+
+    // 防御性保存
+    initDefensiveSave();
 
     // 清除已完成
     document.getElementById('clearDone').addEventListener('click', handleClearDone);
@@ -257,6 +335,7 @@ var Events = (function () {
     handleSubTaskKey: handleSubTaskKey,
     handleContextPin: handleContextPin,
     handleContextDelete: handleContextDelete,
+    handleContextPriorityChange: handleContextPriorityChange,
     toggleDone: toggleDone
   };
 })();
