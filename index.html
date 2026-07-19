@@ -28,16 +28,16 @@
   </div>
   <div class="stats" id="stats"></div>
 
-  <!-- ===== 日期导航 ===== -->
-  <div class="date-nav" id="dateNav">
-    <button class="date-nav-btn" id="datePrev" aria-label="前一天">←</button>
-    <span class="date-nav-label" id="dateNavLabel">今天</span>
-    <button class="date-nav-btn" id="dateNext" aria-label="后一天" disabled>→</button>
-    <button class="date-today-btn" id="dateTodayBtn" style="display:none;">回到今天</button>
-  </div>
-
   <!-- ===== 滚动区域 ===== -->
   <div class="scroll-area">
+
+    <!-- 日期导航（sticky 吸附在滚动区顶部，不占 flex 固定空间） -->
+    <div class="date-nav" id="dateNav">
+      <button class="date-nav-btn" id="datePrev" aria-label="前一天">←</button>
+      <span class="date-nav-label" id="dateNavLabel">今天</span>
+      <button class="date-nav-btn" id="dateNext" aria-label="后一天" disabled>→</button>
+      <button class="date-today-btn" id="dateTodayBtn" style="display:none;">回到今天</button>
+    </div>
 
     <!-- 活跃任务列表 -->
     <div class="task-list" id="taskList"></div>
