@@ -1,5 +1,5 @@
 /* ============================================================
-   我的备忘录 — 入口文件 (v2.3.1)
+   我的备忘录 — 入口文件 (v2.3.2)
 
    职责：初始化顺序、版本检测、PWA 注册、通知系统
    依赖：UI、TaskData、Render、Events、Notifier
@@ -8,7 +8,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v2.3.1';
+  var VERSION = 'v2.3.2';
   var VERSION_KEY = 'memo_version';
 
   /* ── 版本检测 + Toast 提示 ── */

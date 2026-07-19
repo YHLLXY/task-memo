@@ -113,6 +113,19 @@ var TaskData = (function () {
 
   /** 创建任务 */
   function createTask(content, priority, deadline) {
+    // 计算新任务的 order：同钉选组中排最前面
+    var tasks = cleanOldTasks(loadTasks());
+    var sameGroup = tasks.filter(function (t) {
+      return !t.completed && t.date === today() && !t.pinned;
+    });
+    var minOrder = 0;
+    if (sameGroup.length > 0) {
+      minOrder = sameGroup[0].order;
+      for (var i = 1; i < sameGroup.length; i++) {
+        if (sameGroup[i].order < minOrder) minOrder = sameGroup[i].order;
+      }
+    }
+
     var task = {
       id: uid(),
       content: content.trim(),
@@ -124,9 +137,8 @@ var TaskData = (function () {
       date: today(),
       completed: false,
       completed_at: null,
-      order: Date.now()
+      order: minOrder - 1   // 排在此前最靠前的任务之上
     };
-    var tasks = cleanOldTasks(loadTasks());
     tasks.push(task);
     saveRaw(tasks);
     return task;
@@ -186,14 +198,13 @@ var TaskData = (function () {
 
   /** 调整排序 */
   function moveTask(id, direction) {
-    // 只加载一次数据，确保修改和保存的是同一份对象
     var tasks = loadTasks();
     var todayStr = today();
-    // 从加载的 tasks 中直接筛选活跃任务（避免二次 JSON.parse 导致对象不同）
     var active = tasks.filter(function (t) {
       return !t.completed && t.date === todayStr;
     });
     sortTasks(active);
+
     var idx = -1;
     for (var i = 0; i < active.length; i++) {
       if (active[i].id === id) { idx = i; break; }
@@ -201,9 +212,17 @@ var TaskData = (function () {
     if (idx < 0) return;
     var swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= active.length) return;
-    var tmp = active[idx].order;
-    active[idx].order = active[swapIdx].order;
-    active[swapIdx].order = tmp;
+
+    // 在数组中交换两个任务的位置
+    var temp = active[idx];
+    active[idx] = active[swapIdx];
+    active[swapIdx] = temp;
+
+    // 按新位置重新分配所有 order 值，保证 sortTasks 后顺序正确
+    for (var j = 0; j < active.length; j++) {
+      active[j].order = j;
+    }
+
     saveRaw(tasks);
   }
 
@@ -299,14 +318,9 @@ var TaskData = (function () {
   }
 
   function sortTasks(tasks) {
-    var now = new Date();
     tasks.sort(function (a, b) {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      var aOver = !!(a.deadline && new Date(a.deadline) < now);
-      var bOver = !!(b.deadline && new Date(b.deadline) < now);
-      if (aOver !== bOver) return aOver ? -1 : 1;
-      var pri = { high: 0, medium: 1, low: 2 };
-      if (pri[a.priority] !== pri[b.priority]) return pri[a.priority] - pri[b.priority];
+      // order 为主键，用户手动调序优先
       return a.order - b.order;
     });
   }
