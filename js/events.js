@@ -243,9 +243,13 @@ var Events = (function () {
 
   function handleDatePrev() {
     var curDate = TaskData.getCurrentDate();
-    var d = new Date(curDate + 'T00:00:00');
+    var parts = curDate.split('-');
+    // 用 year/month/day 构造 Date，确保本地时区，避开 toISOString 的 UTC 陷阱
+    var d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
     d.setDate(d.getDate() - 1);
-    var newDate = d.toISOString().split('T')[0];
+    var newDate = d.getFullYear() + '-' +
+                  String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                  String(d.getDate()).padStart(2, '0');
     TaskData.setCurrentDate(newDate);
     Render.all();
   }
@@ -253,9 +257,12 @@ var Events = (function () {
   function handleDateNext() {
     if (TaskData.isTodayView()) return;
     var curDate = TaskData.getCurrentDate();
-    var d = new Date(curDate + 'T00:00:00');
+    var parts = curDate.split('-');
+    var d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
     d.setDate(d.getDate() + 1);
-    var newDate = d.toISOString().split('T')[0];
+    var newDate = d.getFullYear() + '-' +
+                  String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                  String(d.getDate()).padStart(2, '0');
     TaskData.setCurrentDate(newDate);
     Render.all();
   }

@@ -331,6 +331,59 @@ Notifier.init();
 
 ---
 
+## 十三、toISOString() 是日期计算的定时炸弹
+
+### 问题
+
+日期导航（← →）在手机上点击后日期跳跃（如 19 号直接跳到 17 号）、右箭头按了没反应。
+
+### 根因
+
+```javascript
+// ❌ 错误：toISOString() 返回 UTC，new Date('YYYY-MM-DD') 按本地时间解析
+// 在 UTC+8（中国），两者差 8 小时，输出会错一天
+var d = new Date('2026-07-19T00:00:00');  // 本地 7/19 00:00
+d.setDate(d.getDate() - 1);               // 本地 7/18 00:00
+d.toISOString().split('T')[0];            // → '2026-07-17' ← 错！跳了两天
+
+// ✅ 正确：用 getFullYear/getMonth/getDate（都是本地时间）
+var newDate = d.getFullYear() + '-' +
+              String(d.getMonth() + 1).padStart(2, '0') + '-' +
+              String(d.getDate()).padStart(2, '0');
+// → '2026-07-18' ← 正确
+```
+
+### 教训
+
+**#15：`toISOString()` 只用于两个场景——① 存储完整时间戳（`created_at`/`completed_at`）；② 不需要。任何需要提取日期（YYYY-MM-DD）的地方，必须用 `getFullYear()` + `getMonth()` + `getDate()` 手动格式化。**
+
+这三兄弟永远返回**本地时间**的值，不会有时区偏差。
+
+### 受影响位置（本次修复 10 处）
+
+| 文件 | 函数 | 影响 |
+|------|------|------|
+| data.js | `today()` | 凌晨可能日期错一天 |
+| data.js | `cleanOldTasks()` | 清理判断偏差 |
+| data.js | `saveRaw` 重试 | 清理判断偏差 |
+| data.js | `getAvailableDates()` | 日期范围偏差 |
+| events.js | `handleDatePrev()` | ← 跳两天 |
+| events.js | `handleDateNext()` | → 不生效 |
+| render.js | `renderDateNav()` | ← 禁用判断偏差 |
+| ui.js | `formatDateLabel()` | "今天/明天"判断偏差 |
+| ui.js | `getDatePickerValue()` | 默认日期偏差 |
+
+### 判断标准
+
+一个 `toISOString()` 调用是否正确，问自己：**它是在存"时间戳"还是取"日期"？**
+
+| 用途 | 例子 | 用 toISOString？ |
+|------|------|:--:|
+| 存完整时间戳 | `created_at: new Date().toISOString()` | ✅ 正确 |
+| 取日期 YYYY-MM-DD | `new Date().toISOString().split('T')[0]` | ❌ 有 Bug |
+
+---
+
 ## 检查清单
 
 后续类似项目（纯前端 PWA）启动时：
@@ -349,4 +402,6 @@ Notifier.init();
 □ 动画: grid-template-rows 折叠 > display:none
 □ 架构: 命名空间模块化（单文件 >500 行即拆分）
 □ 新功能: 独立模块 + 一行接入 app.js（零侵入现有代码）
+□ 日期: 绝不用 toISOString().split('T')[0] 取日期
+□ 日期: 历史视图下必须禁用交互（完成/编辑/排序/子任务）
 ```

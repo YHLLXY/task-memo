@@ -17,8 +17,16 @@ var TaskData = (function () {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 8);
   }
 
+  /** 将 Date 对象格式化为本地时区的 YYYY-MM-DD
+   *  ⚠️ 不能用 toISOString()——它是 UTC，在 UTC+8 等正时区会错一天 */
+  function dateToString(d) {
+    return d.getFullYear() + '-' +
+           String(d.getMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getDate()).padStart(2, '0');
+  }
+
   function today() {
-    return new Date().toISOString().split('T')[0];
+    return dateToString(new Date());
   }
 
   /** 当前查看的日期（null 自动解析为今天） */
@@ -63,12 +71,11 @@ var TaskData = (function () {
       console.error('[备忘录] localStorage 写入失败:', e.message || e);
       // 尝试清理旧数据后重试一次
       try {
+        var cutoffRetry = new Date();
+        cutoffRetry.setDate(cutoffRetry.getDate() - RETENTION_DAYS);
+        var cutoffStrRetry = dateToString(cutoffRetry);
         var cleaned = tasks.filter(function (t) {
-          return !t.completed || t.date >= (function () {
-            var cutoff = new Date();
-            cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
-            return cutoff.toISOString().split('T')[0];
-          })();
+          return !t.completed || t.date >= cutoffStrRetry;
         });
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
         console.warn('[备忘录] 清理后重试保存成功，移除了 ' + (tasks.length - cleaned.length) + ' 条旧数据');
@@ -94,7 +101,7 @@ var TaskData = (function () {
   function cleanOldTasks(tasks) {
     var cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
-    var cutoffStr = cutoff.toISOString().split('T')[0];
+    var cutoffStr = dateToString(cutoff);
     var cleaned = tasks.filter(function (t) {
       return !t.completed || t.date >= cutoffStr;
     });
@@ -265,7 +272,7 @@ var TaskData = (function () {
     var dates = {};
     var cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - RETENTION_DAYS);
-    var cutoffStr = cutoff.toISOString().split('T')[0];
+    var cutoffStr = dateToString(cutoff);
     for (var i = 0; i < tasks.length; i++) {
       if (tasks[i].date >= cutoffStr) {
         dates[tasks[i].date] = true;

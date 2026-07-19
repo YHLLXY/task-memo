@@ -134,13 +134,20 @@ var UI = (function () {
     }
   }
 
+  /** 按本地时区格式化 Date 为 YYYY-MM-DD（不能用 toISOString，它是 UTC） */
+  function dateToStr(d) {
+    return d.getFullYear() + '-' +
+           String(d.getMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getDate()).padStart(2, '0');
+  }
+
   function formatDateLabel(dateStr) {
     var d = new Date(dateStr + 'T00:00:00');
     var now = new Date();
-    var todayStr = now.toISOString().split('T')[0];
+    var todayStr = dateToStr(now);
     var tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    var tomorrowStr = tomorrow.toISOString().split('T')[0];
+    var tomorrowStr = dateToStr(tomorrow);
 
     if (dateStr === todayStr) return '今天';
     if (dateStr === tomorrowStr) return '明天';
@@ -153,7 +160,7 @@ var UI = (function () {
     var dateVal = dateInput ? dateInput.value : '';
     var timeVal = timeInput ? timeInput.value : '';
     if (!dateVal && !timeVal) return null;
-    var d = dateVal || new Date().toISOString().split('T')[0];
+    var d = dateVal || dateToStr(new Date());
     var t = timeVal || '23:59';
     return d + 'T' + t;
   }

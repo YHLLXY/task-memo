@@ -60,11 +60,14 @@ var Render = (function () {
       labelEl.textContent = UI.formatDate(curDate);
     }
 
-    // ← 按钮：最旧日期或 30 天前不可用
+    // ← 按钮：30 天前不可用
     var prevBtn = document.getElementById('datePrev');
     var cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
-    var cutoffStr = cutoff.toISOString().split('T')[0];
+    // 用本地时区格式化，避免 toISOString 的 UTC 偏移问题
+    var cutoffStr = cutoff.getFullYear() + '-' +
+                    String(cutoff.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(cutoff.getDate()).padStart(2, '0');
     prevBtn.disabled = (curDate <= cutoffStr);
 
     // → 按钮：今天是最后一天
@@ -100,12 +103,12 @@ var Render = (function () {
     }
     var html = '';
     for (var i = 0; i < active.length; i++) {
-      html += renderTaskCard(active[i], i, active.length);
+      html += renderTaskCard(active[i], i, active.length, isToday);
     }
     list.innerHTML = html;
   }
 
-  function renderTaskCard(t, index, total) {
+  function renderTaskCard(t, index, total, isToday) {
     var now = new Date();
     var isOverdue = !!(t.deadline && new Date(t.deadline) < now);
     var deadlineHtml = t.deadline
@@ -119,33 +122,60 @@ var Render = (function () {
       subtasksHtml += '<div class="subtasks">';
       for (var i = 0; i < t.sub_tasks.length; i++) {
         var s = t.sub_tasks[i];
-        subtasksHtml += '<div class="subtask-item">' +
-          '<input type="checkbox" ' + (s.completed ? 'checked' : '') + ' onchange="Events.handleSubTaskToggle(\'' + t.id + '\',\'' + s.id + '\')">' +
-          '<span' + (s.completed ? ' style="text-decoration:line-through"' : '') + '>' + UI.escHTML(s.content) + '</span>' +
-          '</div>';
+        // 过去日期的子任务不可交互
+        if (isToday) {
+          subtasksHtml += '<div class="subtask-item">' +
+            '<input type="checkbox" ' + (s.completed ? 'checked' : '') + ' onchange="Events.handleSubTaskToggle(\'' + t.id + '\',\'' + s.id + '\')">' +
+            '<span' + (s.completed ? ' style="text-decoration:line-through"' : '') + '>' + UI.escHTML(s.content) + '</span>' +
+            '</div>';
+        } else {
+          subtasksHtml += '<div class="subtask-item">' +
+            '<input type="checkbox" ' + (s.completed ? 'checked' : '') + ' disabled>' +
+            '<span' + (s.completed ? ' style="text-decoration:line-through"' : '') + '>' + UI.escHTML(s.content) + '</span>' +
+            '</div>';
+        }
       }
       subtasksHtml += '</div>';
     }
-    subtasksHtml += '<div class="subtask-add">' +
-      '<input type="text" placeholder="+ 添加子步骤" id="subinp-' + t.id + '" onkeydown="Events.handleSubTaskKey(event,\'' + t.id + '\')">' +
-      '<button onclick="Events.handleAddSubTask(\'' + t.id + '\')">添加</button>' +
-      '</div>';
+    // 只有今天才能添加子步骤
+    if (isToday) {
+      subtasksHtml += '<div class="subtask-add">' +
+        '<input type="text" placeholder="+ 添加子步骤" id="subinp-' + t.id + '" onkeydown="Events.handleSubTaskKey(event,\'' + t.id + '\')">' +
+        '<button onclick="Events.handleAddSubTask(\'' + t.id + '\')">添加</button>' +
+        '</div>';
+    }
 
-    var upDisabled = index === 0 ? ' disabled' : '';
-    var downDisabled = index === total - 1 ? ' disabled' : '';
+    // 排序箭头：只有今天可用
+    var actionsHtml = '';
+    if (isToday) {
+      var upDisabled = index === 0 ? ' disabled' : '';
+      var downDisabled = index === total - 1 ? ' disabled' : '';
+      actionsHtml = '<div class="task-actions">' +
+        '<button class="arrow-btn" data-action="move-up" data-id="' + t.id + '" onclick="Events.handleMove(\'' + t.id + '\',\'up\')"' + upDisabled + '>▲</button>' +
+        '<button class="arrow-btn" data-action="move-down" data-id="' + t.id + '" onclick="Events.handleMove(\'' + t.id + '\',\'down\')"' + downDisabled + '>▼</button>' +
+        '</div>';
+    }
+
+    // 完成按钮：只有今天可以完成
+    var circleHtml = '';
+    if (isToday) {
+      circleHtml = '<button class="circle-btn" data-action="complete" data-id="' + t.id + '" onclick="Events.handleCompleteClick(\'' + t.id + '\')">○</button>';
+    }
+
+    // 内容点击：只有今天可以编辑
+    var contentHtml = isToday
+      ? '<div class="task-content" onclick="Events.handleEditTask(\'' + t.id + '\')">' + pinIcon + UI.escHTML(t.content) + '</div>'
+      : '<div class="task-content" style="cursor:default;">' + pinIcon + UI.escHTML(t.content) + '</div>';
 
     return '<div class="task-card" data-id="' + t.id + '" id="card-' + t.id + '">' +
       '<div class="priority-bar ' + t.priority + '"></div>' +
       '<div class="task-body">' +
-        '<div class="task-content" onclick="Events.handleEditTask(\'' + t.id + '\')">' + pinIcon + UI.escHTML(t.content) + '</div>' +
+        contentHtml +
         subtasksHtml +
         deadlineHtml +
       '</div>' +
-      '<div class="task-actions">' +
-        '<button class="arrow-btn" data-action="move-up" data-id="' + t.id + '" onclick="Events.handleMove(\'' + t.id + '\',\'up\')"' + upDisabled + '>▲</button>' +
-        '<button class="arrow-btn" data-action="move-down" data-id="' + t.id + '" onclick="Events.handleMove(\'' + t.id + '\',\'down\')"' + downDisabled + '>▼</button>' +
-      '</div>' +
-      '<button class="circle-btn" data-action="complete" data-id="' + t.id + '" onclick="Events.handleCompleteClick(\'' + t.id + '\')">○</button>' +
+      actionsHtml +
+      circleHtml +
       '</div>';
   }
 
